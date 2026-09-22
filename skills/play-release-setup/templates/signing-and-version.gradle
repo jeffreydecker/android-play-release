@@ -1,0 +1,78 @@
+// ============================================================================================
+// Groovy DSL equivalent of signing-and-version.gradle.kts. Paste the top-level section near the
+// top of the app module's build.gradle, after the plugins block.
+// ============================================================================================
+
+// Release signing credentials. Locally they come from a gitignored keystore.properties at the
+// repo root; in CI the same four values arrive as environment variables. Both lookups are
+// configuration-cache safe. When neither source supplies them the release build stays unsigned,
+// so a fresh clone can still verify that a release build compiles.
+def keystoreProperties = new Properties()
+keystoreProperties.load(new StringReader(
+    providers.fileContents(rootProject.layout.projectDirectory.file("keystore.properties"))
+        .asText.getOrElse("")
+))
+
+def signingValue = { String propertyName, String environmentName ->
+    def value = keystoreProperties.getProperty(propertyName)?.trim()
+    if (!value) value = providers.environmentVariable(environmentName).getOrNull()?.trim()
+    value ?: null
+}
+
+def releaseStoreFile = signingValue("storeFile", "KEYSTORE_FILE")
+def releaseStorePassword = signingValue("storePassword", "KEYSTORE_PASSWORD")
+def releaseKeyAlias = signingValue("keyAlias", "KEY_ALIAS")
+def releaseKeyPassword = signingValue("keyPassword", "KEY_PASSWORD")
+def hasReleaseSigning = releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
+
+// The one value a release PR edits. versionCode is derived from it so the two can never drift:
+// 1.2.3 -> base + 10203. Play only requires codes to increase, so gaps are harmless - but a
+// published code is retired forever, so versionCodeBase may only ever go up.
+def appVersionName = "__VERSION_NAME__"
+def versionCodeBase = __VERSION_CODE_BASE__
+def appVersionCode = {
+    def parts = appVersionName.tokenize(".")
+    if (!(parts.size() in 2..3) || !parts.every { it.isInteger() }) {
+        throw new GradleException("versionName must be MAJOR.MINOR or MAJOR.MINOR.PATCH, was \"$appVersionName\"")
+    }
+    def (major, minor, patch) = (0..2).collect { parts[it]?.toInteger() ?: 0 }
+    if (minor >= 100 || patch >= 100) {
+        throw new GradleException("minor and patch must each stay under 100 to keep versionCode ordered, was \"$appVersionName\"")
+    }
+    versionCodeBase + major * 10_000 + minor * 100 + patch
+}()
+
+// Read by the release workflow to check the pushed tag against the build file, so the check
+// does not depend on how the version literal happens to be formatted.
+tasks.register("printVersionName") {
+    def versionName = appVersionName
+    doLast { println(versionName) }
+}
+
+// ============================================================================================
+// Inside android { ... }
+// ============================================================================================
+
+//  defaultConfig {
+//      versionCode appVersionCode
+//      versionName appVersionName
+//  }
+//
+//  signingConfigs {
+//      if (hasReleaseSigning) {
+//          release {
+//              storeFile file(releaseStoreFile)
+//              storePassword releaseStorePassword
+//              keyAlias releaseKeyAlias
+//              keyPassword releaseKeyPassword
+//          }
+//      }
+//  }
+//
+//  buildTypes {
+//      release {
+//          if (hasReleaseSigning) {
+//              signingConfig signingConfigs.release
+//          }
+//      }
+//  }

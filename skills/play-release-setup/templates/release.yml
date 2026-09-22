@@ -1,0 +1,93 @@
+name: Release to Play
+
+# Pushing a v* tag is the one action that ships. The version lives in the build file, bumped by
+# a release PR before the tag is cut; this workflow only verifies that the tag agrees with it.
+# That keeps the version a property of the commit rather than of the CI run, so a failed run can
+# be re-run freely and any tag rebuilds reproducibly.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+# Two releases racing each other would open competing Play edits.
+concurrency:
+  group: play-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      # Actions are pinned to commits, not tags: this job holds your signing key and a Play
+      # service account key, and a moved tag would run someone else's code with both.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '__JAVA_VERSION__'
+
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+
+      # __GOOGLE_SERVICES_BEGIN__
+      - name: Restore google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          # Gitignored, so neither the file nor its directory survives a fresh checkout.
+          mkdir -p "$(dirname '__GOOGLE_SERVICES_PATH__')"
+          printf '%s' "$GOOGLE_SERVICES_JSON" > '__GOOGLE_SERVICES_PATH__'
+      # __GOOGLE_SERVICES_END__
+
+      - name: Restore the upload keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+
+      # A mismatch means the version bump PR was never merged, or a commit that predates it got
+      # tagged. Failing here costs seconds; failing at upload costs a full build.
+      - name: Verify the tag matches the build file
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          VERSION_NAME="$(./gradlew -q :__MODULE__:printVersionName | tail -n 1)"
+          if [ "${TAG_NAME#v}" != "$VERSION_NAME" ]; then
+            echo "::error::Tag $TAG_NAME does not match appVersionName $VERSION_NAME. Merge the version bump before tagging."
+            exit 1
+          fi
+          echo "Releasing $VERSION_NAME"
+
+      - name: Build signed bundle
+        env:
+          KEYSTORE_FILE: ${{ runner.temp }}/release.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew :__MODULE__:__BUNDLE_TASK__
+
+      # No mappingFile input: AGP embeds the R8 mapping in the bundle's BUNDLE-METADATA, and
+      # Play extracts it from there.
+      - name: Upload to Play
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: __PACKAGE_NAME__
+          releaseFiles: __MODULE__/build/outputs/bundle/__VARIANT__/*.aab
+          tracks: internal
+          status: completed
+          whatsNewDirectory: distribution/whatsnew
+
+      # Kept so a rejected build can be inspected, or uploaded by hand while a Play Console
+      # declaration is being resolved.
+      - name: Archive the bundle
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-${{ github.ref_name }}
+          if-no-files-found: warn
+          path: __MODULE__/build/outputs/bundle/__VARIANT__/*.aab
