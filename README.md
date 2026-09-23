@@ -49,7 +49,7 @@ This pipeline handles your upload key and a Play service account key, so here ar
 The skills use the standard `SKILL.md` format. For Claude Code:
 
 ```bash
-git clone https://github.com/<owner>/android-play-release
+git clone https://github.com/jeffreydecker/android-play-release
 cp -r android-play-release/skills/* ~/.claude/skills/
 ```
 
