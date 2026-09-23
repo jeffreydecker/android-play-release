@@ -23,7 +23,8 @@ that permission, and an edit that failed to commit does not count. The way out:
 
 1. Download the bundle from the run's artifacts: `gh run download <id>`.
 2. Upload it by hand in Play Console to the internal track. That registers the permission.
-3. The declaration now appears under **Monitor and improve → App content**. Complete it. For
+3. The declaration now appears under **Monitor and improve → Policy and programs → App
+   content** (search for "App content" if it has moved). Complete it. For
    foreground services Play asks for a description, the impact of the task being deferred or
    interrupted, a use case, and a link to a video showing the feature being triggered.
 4. Finish that release by hand, and paste the release notes: they only reach Play through the
@@ -35,6 +36,14 @@ version. Do not re-run the failed workflow run afterwards; it will be rejected a
 The cheap prevention is the setup skill's manifest scan: warn the user about declarations before
 the first tag, not after.
 
+**`Changes cannot be sent for review automatically. Please set the query parameter
+changesNotSentForReview to true`**, at `Committing the Edit`
+Play Console holds changes that must be sent for review by hand, typically after a rejection or
+while other changes are pending under **Publishing overview**. Either resolve them there and
+re-run, or add `changesNotSentForReview: true` to the upload step. With that set, the release
+commits but waits in Publishing overview until someone clicks **Send for review**. The
+versionCode is used once the edit commits either way.
+
 **`Only releases with status draft may be created on draft app`**
 The app has never been published. Its first release has to go through Play Console by hand.
 
@@ -44,6 +53,11 @@ the derived code is below codes published before this setup existed, `versionCod
 too low - raise it past the highest published code. It may only ever go up.
 
 ## Before the upload
+
+**`vX.Y points at a commit that is not on <branch>`**
+The tag is on a branch that was never merged, or on a commit that has since been rewritten.
+Nothing secret was restored and nothing was built. Delete the tag, and re-tag the version bump's
+commit on the default branch.
 
 **`Tag vX.Y does not match appVersionName`**
 The bump PR is not merged, or a commit that predates it got tagged. Delete the tag

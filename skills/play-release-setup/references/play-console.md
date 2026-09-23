@@ -3,9 +3,10 @@
 The steps the user performs by hand to let CI upload. They involve credentials, so the agent
 explains them and the user runs them; the agent never creates keys or enters secrets.
 
-**Last verified: August 2026.** The Play Console UI moves often, and navigation paths here have
-already been wrong once. If the user reports that a menu item does not exist, stop repeating
-these directions: search the official docs
+**Last verified: August 2026.** The App content path and the permission names in step 4 were
+updated in September 2026. The Play Console UI moves often, and navigation paths here have
+already been wrong more than once. If the user reports that a menu item does not exist, stop
+repeating these directions: search the official docs
 (https://developers.google.com/android-publisher/getting_started) and give them the current path.
 The Play Console search box at the top of every page is a reliable fallback for any named page.
 
@@ -37,13 +38,25 @@ https://console.cloud.google.com/iam-admin/serviceaccounts, same project.
   **Add key → Create new key → JSON**. The file downloads immediately and cannot be downloaded
   again. Users regularly stop after creating the account and wonder where the file is.
 
+If key creation fails with **Service account key creation is disabled**, the Cloud organization
+enforces `iam.disableServiceAccountKeyCreation`. That is the default for organizations created
+on or after 3 May 2024, which includes most Google Workspace accounts. Only an organization
+policy administrator can grant an exception for this one project. The user decides whether to
+ask for one; neither you nor they should weaken the policy for the whole organization. This
+workflow has no keyless alternative, so without a key it cannot upload.
+
 Copy the account's email address; step 4 needs it.
 
 ## 4. Grant it access in Play Console
 
 https://play.google.com/console/users-and-permissions → **Invite new users** → the service
-account email → **App permissions** tab → **Add app** → the app → grant **Release manager**, or
-at minimum **Release apps to testing tracks** → **Invite user**.
+account email → **App permissions** tab → **Add app** → the app → grant **Release apps to
+testing tracks** → **Invite user**.
+
+Grant that permission and nothing else. The workflow only uploads to the internal track. Without
+**Release to production, exclude devices, and use Play App Signing**, a leaked key cannot ship
+to production. Play Console has no preset roles; older guides that say "Release manager"
+describe a console that no longer exists.
 
 The grant must be on the **app**, not only the account. An account-level invite with no app
 attached fails exactly like no invite at all. Service accounts do not need to accept anything.
@@ -59,6 +72,7 @@ a live credential to their Play account and has no reason to stay in Downloads.
 - **The app must already exist in Play Console with at least one release uploaded by hand.**
   The API cannot create an app, and a never-published app only accepts draft releases.
 - **Sensitive permission declarations** - foreground services, exact alarms, full-screen intents,
-  background location, and so on - have to be completed under **Monitor and improve → App
-  content** before Play commits a release that uses them. The form for a newly added permission
-  only appears after Play has registered a bundle containing it. See troubleshooting.md.
+  background location, the advertising ID, and so on - have to be completed under **Monitor and
+  improve → Policy and programs → App content** before Play commits a release that uses them.
+  The form for a newly added permission only appears after Play has registered a bundle
+  containing it. See troubleshooting.md.

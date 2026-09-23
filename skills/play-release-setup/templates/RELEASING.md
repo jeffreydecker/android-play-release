@@ -18,7 +18,7 @@ to production stays manual, in Play Console.
 ```
 version bump PR ──merge──▶ default branch ──tag v1.2──▶ .github/workflows/release.yml
     ├─ verify the tag matches appVersionName
-    ├─ restore the upload keystore (and google-services.json) from secrets
+    ├─ restore the upload keystore and any gitignored build files from secrets
     ├─ build and sign the bundle
     ├─ upload it with the release notes to the internal track
     └─ archive the bundle on the run
@@ -41,9 +41,9 @@ uploaded, even if it was never rolled out. `versionCodeBase` may be raised, neve
 `KEYSTORE_PASSWORD`, `KEY_ALIAS` and `KEY_PASSWORD` environment variables in CI. With neither,
 the release build compiles unsigned.
 
-**Release notes** are `distribution/whatsnew/whatsnew-en-US`, at most 500 characters; going over
-fails the upload after the whole build. Add a locale with a sibling file such as
-`whatsnew-es-ES`.
+**Release notes** are `distribution/whatsnew/whatsnew-<locale>`, one file per store listing
+language, each at most 500 characters. Going over fails the upload after the whole build. Add a
+language with a sibling file such as `whatsnew-es-ES`.
 
 **Deobfuscation:** the R8 mapping travels inside the bundle, and Play extracts it. Nothing to
 upload separately.
@@ -68,23 +68,46 @@ date.
 See the play-release-setup skill's `references/play-console.md`, or Google's
 [getting started guide](https://developers.google.com/android-publisher/getting_started). In
 short: enable the Google Play Android Developer API on a Cloud project, create a service account
-with a JSON key, and invite that account in Play Console under **Users and permissions** with
-access to this app.
+with a JSON key, and invite that account in Play Console under **Users and permissions**, with only **Release apps
+to testing tracks** on this app.
 
-### Repository secrets
+<!-- __ENVIRONMENT_BEGIN__ -->
+### Release environment
+
+The secrets live in the `__ENVIRONMENT__` environment, which only `v*` tags can deploy to. A
+workflow pushed on any other branch cannot read them. Create it once, before setting secrets:
+
+```bash
+gh api -X PUT repos/__REPO__/environments/__ENVIRONMENT__ \
+  -F 'deployment_branch_policy[protected_branches]=false' \
+  -F 'deployment_branch_policy[custom_branch_policies]=true'
+gh api -X POST repos/__REPO__/environments/__ENVIRONMENT__/deployment-branch-policies \
+  -f name='v*' -f type=tag
+```
+
+Adding yourself as a required reviewer in the environment's settings makes every release wait
+for an approval click after the tag is pushed.
+<!-- __ENVIRONMENT_END__ -->
+
+### Who can release
+
+Anyone who can push a `v*` tag can release. To limit that, add a tag ruleset under
+**Settings → Rules → Rulesets** that restricts creating `v*` tags to maintainers.
+
+### Secrets
 
 Run these yourself, from the root of the main checkout (worktrees lack gitignored files):
 
 ```bash
-gh secret set KEYSTORE_BASE64 -R __REPO__ < <(base64 -i /path/to/upload-keystore.jks)
-gh secret set KEY_ALIAS -R __REPO__            # prompts; input hidden
-gh secret set KEYSTORE_PASSWORD -R __REPO__
-gh secret set KEY_PASSWORD -R __REPO__
-gh secret set PLAY_SERVICE_ACCOUNT_JSON -R __REPO__ < /path/to/service-account.json
-__GOOGLE_SERVICES_SECRET_LINE__
+gh secret set KEYSTORE_BASE64 __SECRET_FLAGS__ < <(base64 -i /path/to/upload-keystore.jks)
+gh secret set KEY_ALIAS __SECRET_FLAGS__            # prompts; input hidden
+gh secret set KEYSTORE_PASSWORD __SECRET_FLAGS__
+gh secret set KEY_PASSWORD __SECRET_FLAGS__
+gh secret set PLAY_SERVICE_ACCOUNT_JSON __SECRET_FLAGS__ < /path/to/service-account.json
+__FILE_SECRET_LINES__
 ```
 
-Secrets are write-only. `gh secret list -R __REPO__` shows which exist but never their values.
+Secrets are write-only. `gh secret list __SECRET_FLAGS__` shows which exist but never their values.
 
 ## Building a signed release locally
 
@@ -97,5 +120,5 @@ keyAlias=...
 keyPassword=...
 ```
 
-Then `./gradlew :__MODULE__:__BUNDLE_TASK__`. A local build of a tagged commit carries the same
+Then `./gradlew __MODULE_PATH__:__BUNDLE_TASK__`. A local build of a tagged commit carries the same
 version as CI's.

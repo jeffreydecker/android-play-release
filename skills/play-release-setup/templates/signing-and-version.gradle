@@ -1,6 +1,7 @@
 // ============================================================================================
 // Groovy DSL equivalent of signing-and-version.gradle.kts. Paste the top-level section near the
-// top of the app module's build.gradle, after the plugins block.
+// top of the app module's build.gradle, after the plugins block. Properties are set with `=`:
+// Gradle deprecated the space form (`versionCode 1`) and removes it in Gradle 10.
 // ============================================================================================
 
 // Release signing credentials. Locally they come from a gitignored keystore.properties at the
@@ -54,17 +55,17 @@ tasks.register("printVersionName") {
 // ============================================================================================
 
 //  defaultConfig {
-//      versionCode appVersionCode
-//      versionName appVersionName
+//      versionCode = appVersionCode
+//      versionName = appVersionName
 //  }
 //
 //  signingConfigs {
 //      if (hasReleaseSigning) {
 //          release {
-//              storeFile file(releaseStoreFile)
-//              storePassword releaseStorePassword
-//              keyAlias releaseKeyAlias
-//              keyPassword releaseKeyPassword
+//              storeFile = file(releaseStoreFile)
+//              storePassword = releaseStorePassword
+//              keyAlias = releaseKeyAlias
+//              keyPassword = releaseKeyPassword
 //          }
 //      }
 //  }
@@ -72,7 +73,7 @@ tasks.register("printVersionName") {
 //  buildTypes {
 //      release {
 //          if (hasReleaseSigning) {
-//              signingConfig signingConfigs.release
+//              signingConfig = signingConfigs.release
 //          }
 //      }
 //  }
