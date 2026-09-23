@@ -58,8 +58,9 @@ Install both skills. `play-release` refers to the troubleshooting guide that shi
 
 ## Usage
 
-In your Android repo, ask your agent to *set up automated Play releases*. It will ask for one
-thing it can't find out itself: the highest `versionCode` you have ever uploaded to Play.
+In your Android repo, ask your agent to *set up automated Play releases*. It will ask for what it
+can't find out itself: the highest `versionCode` you have ever uploaded to Play, whether the
+current version is already on Play, and your store listing's default language.
 
 After setup and the one-time secrets, ask it to *cut a release*.
 
@@ -74,9 +75,11 @@ After setup and the one-time secrets, ask it to *cut a release*.
 
 ## Limitations
 
-- One application module, Android App Bundles only, GitHub-hosted runners.
+- One application module and one package, Android App Bundles only, GitHub-hosted runners.
+- Secrets live in a GitHub Environment that only `v*` tags can use. Private repos on GitHub Free
+  can't have environments, so they fall back to repository secrets.
 - Uploads go to the internal track. Other tracks and staged rollouts mean editing the workflow.
-- Release notes are `en-US` by default. Add more locales as sibling files.
+- Release notes start in one language, your listing's default. Add more as sibling files.
 
 ## Keeping it current
 
