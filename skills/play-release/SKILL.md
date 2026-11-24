@@ -72,11 +72,19 @@ derived.
 
 Check the tag is free: `git tag --list vX.Y` and `git ls-remote --tags origin refs/tags/vX.Y`.
 
+If replacing a bundle already uploaded to Play, use a higher versionCode even if it only reached
+internal testing or never passed production review. With this version scheme, that means a new
+version name, usually the next patch. Keep the old tag and build as the record of what shipped.
+
 ## 3. Release notes
 
 Draft notes for the people using the app, from what the commits changed. Do not copy commit
 subjects. Leave out refactors, CI, and docs. Show the draft with AskUserQuestion so the user can
 accept it or replace it.
+
+For a replacement of an internal-only release, confirm whether to retain the earlier release's
+user-facing changes along with the fix. A tag or internal upload is not evidence that those
+changes have reached production users.
 
 `distribution/whatsnew/whatsnew-<locale>` is plain text, at most **500 characters** per file.
 Count characters, not bytes, with `LC_ALL=en_US.UTF-8 wc -m`. `wc -c` overcounts anything
@@ -85,9 +93,22 @@ has other locales, ask whether to update them too, or remove the stale ones.
 
 ## 4. Phase A: the bump PR
 
-Change only the `appVersionName` line. Then run `./gradlew -q <gradle-path>:printVersionName |
+For an ordinary bump, change only the `appVersionName` line in the build file. When the user
+requests a release fix in the same PR, include that fix and describe it in the PR. Keep unrelated
+open fixes separate unless the user asks to include them.
+
+Before committing, build the production bundle with external reporting uploads disabled as
+appropriate for the project. Inspect its merged manifest and packaged feature requirements for
+device filtering, including orientation requirements implied by `android:screenOrientation`.
+For optional hardware and native-symbol diagnostics, use the
+[release compatibility guidance](../play-release-setup/references/troubleshooting.md#release-compatibility).
+Do not infer production-review readiness from a successful internal upload.
+
+Then run `./gradlew -q <gradle-path>:printVersionName |
 tail -n 1`. It proves the new name passes the build's version checks and prints the name the
 workflow will compare against. Then:
+
+Stage requested fix files by their exact paths in addition to the ordinary bump files below.
 
 ```bash
 git checkout -b release/vX.Y
