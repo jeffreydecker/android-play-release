@@ -78,6 +78,44 @@ history.
 
 ## After a successful upload
 
+### Release compatibility
+
+**`Required hardware feature declarations are restricting your app's availability`**
+
+Inspect the release variant's merged manifest and packaged feature requirements, not only the
+source manifest. An omitted `android:required` on `<uses-feature>` defaults to `true`, and
+permissions or an activity's orientation can imply requirements without an explicit declaration.
+For example, `screenOrientation="sensorPortrait"` implies `android.hardware.screen.portrait`.
+If portrait hardware is not essential to the app, add this directly under `<manifest>`:
+
+```xml
+<uses-feature
+    android:name="android.hardware.screen.portrait"
+    android:required="false" />
+```
+
+This removes the installation filter while preserving the activity's orientation preference.
+Do not mark genuinely required features optional or remove orientation locks without checking
+the app's behavior. Smoke-test relevant flows in the newly eligible window/device configurations.
+See [Android's feature-filtering documentation](https://developer.android.com/guide/topics/manifest/uses-feature-element).
+
+Distinguish device-availability findings and diagnostic recommendations from actual review
+blockers using the specific Play Console issue and available submission controls. A successful
+internal upload does not prove production review is unblocked. If the manifest must change after
+an upload, build a replacement with a higher versionCode; do not reuse the uploaded code or move
+its tag. Console-only declarations may instead be resolved without changing the bundle.
+
+**`This App Bundle contains native code, and you've not uploaded debug symbols`**
+
+This recommendation concerns native crash diagnostics, separately from Kotlin/Java R8 mappings.
+For future bundles, AGP's `ndk.debugSymbolLevel = "SYMBOL_TABLE"` or `"FULL"` can embed available
+symbols when the selected NDK tools are installed. Verify actual
+`BUNDLE-METADATA/com.android.tools.build.debugsymbols/` entries; the setting alone is not proof.
+Pre-stripped dependencies require matching publisher-provided symbols. For an uploaded version,
+only provide a symbol ZIP verified against its exact native binaries; a newly rebuilt bundle is
+not a replacement for that upload. See
+[Android's native-symbol guidance](https://developer.android.com/build/include-native-symbols).
+
 **The release does not show up for a tester**
 Publishing to internal testing is not enough: the tester's account must be on the track's tester
 list and must accept the opt-in link from the **Testers** tab. Also check **Publishing

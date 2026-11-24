@@ -296,9 +296,14 @@ Do all of this before telling the user it works.
      them all. Any other code means an override is still in place.
    - the tag check from the workflow accepts `v<name>` and rejects any other tag, run as shell
 7. **Unsigned fallback.** The same build with no signing variables set must still succeed.
-8. **Scan the merged manifest for declared permissions.** Libraries add permissions too, so scan
+8. **Scan the merged manifest for permissions and required features.** Libraries add declarations too, so scan
    the merged manifest from this build rather than the source:
    `find <dir>/build/intermediates/merged_manifest -path '*<variant>*' -name AndroidManifest.xml`.
+   Inspect explicit `<uses-feature>` requirements (omitting `required` means `true`) and implicit
+   feature requirements from permissions and `android:screenOrientation`. For non-essential
+   hardware, propose an explicit optional declaration; preserve genuinely required hardware and
+   confirm behavior on the newly eligible device types. See the
+   [release compatibility guidance](references/troubleshooting.md#release-compatibility).
    Flag anything Play makes you declare before it commits a release: `FOREGROUND_SERVICE_*`
    types, `USE_EXACT_ALARM` / `SCHEDULE_EXACT_ALARM`, `USE_FULL_SCREEN_INTENT`,
    `ACCESS_BACKGROUND_LOCATION`, SMS and call log permissions, `QUERY_ALL_PACKAGES`,
