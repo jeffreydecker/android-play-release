@@ -1,0 +1,69 @@
+name: Check templates
+
+# Lints the release.yml template, runs the Gradle templates in real builds, and validates the
+# SKILL.md files. ci/check_templates.py holds the checks; run it locally the same way.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-templates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  skills-and-workflow:
+    name: SKILL.md files and release.yml
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # Same pins as the release template, so Dependabot updates both together.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install actionlint and shellcheck
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet -r ci/requirements.txt
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+
+      - name: Validate SKILL.md files
+        run: python3 ci/check_templates.py skills
+
+      - name: Lint release.yml and this workflow
+        run: |
+          python3 ci/check_templates.py workflow
+          actionlint -no-color -oneline .github/workflows/*.yml
+
+  gradle:
+    name: Gradle templates (Gradle ${{ matrix.gradle }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # The newest release catches deprecations before they ship to users of the templates;
+        # 8.14.3 keeps the "works much further back" claim in the README honest.
+        gradle: [current, 8.14.3]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        with:
+          gradle-version: ${{ matrix.gradle }}
+          cache-provider: basic
+
+      - name: Run both Gradle templates
+        run: python3 ci/check_templates.py gradle
