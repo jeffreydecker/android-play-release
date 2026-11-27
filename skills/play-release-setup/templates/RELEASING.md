@@ -59,8 +59,9 @@ that is already on Play. Find its alias:
 keytool -list -v -keystore /path/to/upload-keystore.jks
 ```
 
-Compare the `SHA1` it prints with the **Upload key certificate** on Play Console's **App integrity** page (the console's
-search box finds it if the menu has moved) to confirm it is the right key, and note the expiry
+Compare the `SHA1` it prints with the **Upload key certificate** on Play Console's Play app signing page
+(**Protected with Play → Play Store protection → Manage Play app signing**, formerly "App integrity";
+the console's search box finds it if the menu has moved) to confirm it is the right key, and note the expiry
 date.
 
 ### Play service account

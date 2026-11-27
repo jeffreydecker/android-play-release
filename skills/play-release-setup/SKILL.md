@@ -164,7 +164,8 @@ before overwriting it; the `play-release` skill expects the new workflow at that
 
 Play remembers every `versionCode` ever uploaded, and the repo does not. Ask the user two things:
 
-- the **highest versionCode uploaded to Play**. Play Console's App bundle explorer lists them.
+- the **highest versionCode uploaded to Play**. Play Console lists them under **Test and release → Latest
+  releases and bundles** (the **App bundle explorer** sits under **All app versions** there).
   Do not assume it equals the build file's value: codes may have come from another branch, a
   manual upload, or an old scheme.
 - whether the build file's **current versionName has been uploaded** already, or is the next
@@ -334,7 +335,9 @@ Give the user a checklist of what is left, in this order:
    and cache directories. Skip `~/.android/debug.keystore`, which every Android developer has.
    Never run `keytool -list` yourself, because it asks for the keystore password. Always tell
    them that a filename is circumstantial evidence, and that comparing `keytool -list -v`
-   fingerprints with Play Console's App integrity page is the actual check. For an app already on Play, they must never generate a new upload key.
+   fingerprints with the **Upload key certificate** on Play Console's Play app signing page
+   (**Protected with Play → Play Store protection → Manage Play app signing**; formerly "App
+   integrity") is the actual check. For an app already on Play, they must never generate a new upload key.
 4. **Declarations** from step 4.8, with the troubleshooting.md entry on why they fail the first
    upload. Resolving them before the first tag saves a failed run and a burned versionCode.
 5. **Commit.** Offer to commit on a branch and open a PR. Do it only if they say yes.

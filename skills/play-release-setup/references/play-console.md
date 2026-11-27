@@ -3,8 +3,8 @@
 The steps the user performs by hand to let CI upload. They involve credentials, so the agent
 explains them and the user runs them; the agent never creates keys or enters secrets.
 
-**Last verified: August 2026.** The App content path and the permission names in step 4 were
-updated in September 2026. The Play Console UI moves often, and navigation paths here have
+**Last verified: November 2026** against Google's Play Console Help and the Play Developer API
+getting-started guide. The Play Console UI moves often, and navigation paths here have
 already been wrong more than once. If the user reports that a menu item does not exist, stop
 repeating these directions: search the official docs
 (https://developers.google.com/android-publisher/getting_started) and give them the current path.
@@ -49,14 +49,17 @@ Copy the account's email address; step 4 needs it.
 
 ## 4. Grant it access in Play Console
 
-https://play.google.com/console/users-and-permissions → **Invite new users** → the service
-account email → **App permissions** tab → **Add app** → the app → grant **Release apps to
-testing tracks** → **Invite user**.
+https://play.google.com/console/users-and-permissions (**Users and permissions** in the main
+menu) → **Invite new users** → the service account email under "User details" → in the **App
+permissions** section, add the app and grant **Release apps to testing tracks** → **Invite
+user**. Leave the **Account permissions** section and the "Make this user an account admin"
+toggle untouched.
 
 Grant that permission and nothing else. The workflow only uploads to the internal track. Without
 **Release to production, exclude devices, and use Play App Signing**, a leaked key cannot ship
-to production. Play Console has no preset roles; older guides that say "Release manager"
-describe a console that no longer exists.
+to production. Play Console has no "Release manager" role; older guides that name one describe
+a console that no longer exists. Its only access levels are Account owner, Admin and User, and
+the service account should be a plain User.
 
 The grant must be on the **app**, not only the account. An account-level invite with no app
 attached fails exactly like no invite at all. Service accounts do not need to accept anything.
@@ -73,6 +76,7 @@ a live credential to their Play account and has no reason to stay in Downloads.
   The API cannot create an app, and a never-published app only accepts draft releases.
 - **Sensitive permission declarations** - foreground services, exact alarms, full-screen intents,
   background location, the advertising ID, and so on - have to be completed under **Monitor and
-  improve → Policy and programs → App content** before Play commits a release that uses them.
+  improve → Policy and programs → App content** (some Google pages shorten this to **Policy → App
+  content**) before Play commits a release that uses them.
   The form for a newly added permission only appears after Play has registered a bundle
   containing it. See troubleshooting.md.
