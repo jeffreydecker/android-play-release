@@ -87,7 +87,7 @@ After setup and the one-time secrets, ask it to *cut a release*.
   repo that uses the workflow. It understands SHA pins with version comments.
 - **Play Console.** The UI moves. The navigation in
   [play-console.md](skills/play-release-setup/references/play-console.md) was last checked in
-  August 2026. If a menu path is wrong, please open an issue or a PR. That file is where most
+  November 2026. If a menu path is wrong, please open an issue or a PR. That file is where most
   fixes will be needed.
 
 ## License
