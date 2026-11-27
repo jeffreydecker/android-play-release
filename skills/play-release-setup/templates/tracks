@@ -1,0 +1,4 @@
+# The Play testing tracks the next v* tag uploads to, one per line. See RELEASING.md.
+# internal is the default. A closed testing track's name sends the release to that track's
+# testers only. Change this in the version bump PR, not after tagging.
+internal

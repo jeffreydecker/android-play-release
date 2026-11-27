@@ -47,6 +47,29 @@ jobs:
             exit 1
           fi
 
+      # Who gets the release is a property of the commit, like the version: the bump PR sets
+      # distribution/tracks, so a re-run reaches the same testers. Read before any secret, so a
+      # bad name fails in seconds. A repo set up before the file existed releases to internal.
+      - name: Read the release tracks
+        id: tracks
+        run: |
+          TRACKS=""
+          if [ -f distribution/tracks ]; then
+            while IFS= read -r LINE || [ -n "$LINE" ]; do
+              NAME="$(printf '%s' "${LINE%%#*}" | sed -E 's/^[[:space:]]+|[[:space:]]+$//g')"
+              [ -z "$NAME" ] && continue
+              case "$NAME" in
+                production|beta|internalsharing|*,*)
+                  echo "::error::distribution/tracks names '$NAME'. This workflow uploads only to internal and closed testing tracks."
+                  exit 1 ;;
+              esac
+              TRACKS="${TRACKS:+$TRACKS,}$NAME"
+            done < distribution/tracks
+          fi
+          TRACKS="${TRACKS:-internal}"
+          echo "Uploading to: $TRACKS"
+          echo "tracks=$TRACKS" >> "$GITHUB_OUTPUT"
+
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
@@ -102,7 +125,7 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: __PACKAGE_NAME__
           releaseFiles: __MODULE_DIR__/build/outputs/bundle/__VARIANT__/*.aab
-          tracks: internal
+          tracks: ${{ steps.tracks.outputs.tracks }}
           status: completed
           whatsNewDirectory: distribution/whatsnew
 

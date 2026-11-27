@@ -12,12 +12,13 @@ Adds a tag-driven release pipeline to an Android repo:
 - **One version literal.** `appVersionName` in the build file, with `versionCode` derived from it,
   so the two cannot drift.
 - **A workflow** that runs on a `v*` tag: checks the tag against the build file, builds and signs
-  the bundle, and uploads it with release notes to the Play **internal** track.
+  the bundle, and uploads it with release notes to the Play testing tracks named in
+  `distribution/tracks`, the **internal** track unless a release says otherwise.
 - **Docs and a hand-off** covering what only the user can do: secrets and Play Console.
 
 Templates are in `templates/`. Read `references/play-console.md` and
 `references/troubleshooting.md` before the hand-off; they hold what first releases actually
-trip on.
+trip on. `references/testing-tracks.md` explains how to send a release to specific testers.
 
 ## Ground rules
 
@@ -203,6 +204,7 @@ Then show the user the plan in one message and wait for confirmation:
   have one
 - the release notes file, such as `whatsnew-en-US`, and any existing release automation it
   replaces
+- `distribution/tracks`, which starts as `internal`
 
 ## 3. Apply
 
@@ -239,6 +241,10 @@ everything from one marker to the other.
 **Release notes.** Copy `templates/whatsnew/whatsnew-en-US` to
 `distribution/whatsnew/whatsnew-<locale>`, using the listing's default language from step 1,
 such as `whatsnew-en-GB`.
+
+**Release tracks.** Copy `templates/tracks` to `distribution/tracks` unchanged. It sends
+releases to the internal track until a bump PR names another. If the repo already has
+`distribution/tracks`, keep it.
 
 **Docs.** Copy `templates/RELEASING.md` to the repo root and fill `__BUILD_FILE__`, `__REPO__`,
 `__MODULE_PATH__`, `__BUNDLE_TASK__`, and `__ENVIRONMENT__`. Fill `__SECRET_FLAGS__` with
@@ -295,6 +301,8 @@ Do all of this before telling the user it works.
      The packaged manifest reflects variant API overrides, and the merged one may not, so read
      them all. Any other code means an override is still in place.
    - the tag check from the workflow accepts `v<name>` and rejects any other tag, run as shell
+   - the workflow's `Read the release tracks` step, run as shell from the worktree root with
+     `GITHUB_OUTPUT` pointing at a scratch file, writes `tracks=internal`
 7. **Unsigned fallback.** The same build with no signing variables set must still succeed.
 8. **Scan the merged manifest for permissions and required features.** Libraries add declarations too, so scan
    the merged manifest from this build rather than the source:
@@ -339,7 +347,9 @@ Give the user a checklist of what is left, in this order:
    upload. Resolving them before the first tag saves a failed run and a burned versionCode.
 5. **Commit.** Offer to commit on a branch and open a PR. Do it only if they say yes.
 6. **Releasing from now on.** Point to the `play-release` skill if it is installed, and to
-   RELEASING.md otherwise.
+   RELEASING.md otherwise. If some releases should reach only some testers, point to
+   `references/testing-tracks.md`: each group needs its own closed testing track, created once
+   in Play Console.
 
 State what you verified, and what you could not: nothing here has talked to Play yet. The first
 real run is also the first test of the service account and secrets.

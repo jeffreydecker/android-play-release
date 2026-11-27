@@ -44,6 +44,15 @@ re-run, or add `changesNotSentForReview: true` to the upload step. With that set
 commits but waits in Publishing overview until someone clicks **Send for review**. The
 versionCode is used once the edit commits either way.
 
+**An error naming a track, such as a 404 or `Track not found`**, during `Upload to Play`
+A name in `distribution/tracks` does not match a track in Play Console. Closed tracks must be
+created by hand first, and the name must match exactly. The edit never committed, so the
+versionCode is still free. A re-run reads the same commit and fails the same way. Either create
+the missing track in Play Console and re-run, or merge a PR that fixes `distribution/tracks`,
+then move the tag to that commit: with an explicit yes,
+`git push origin :refs/tags/vX.Y && git tag -d vX.Y`, and tag again. (The exact wording of this
+error has not been seen on a real release yet.)
+
 **`Only releases with status draft may be created on draft app`**
 The app has never been published. Its first release has to go through Play Console by hand.
 

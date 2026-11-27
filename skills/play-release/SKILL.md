@@ -1,6 +1,6 @@
 ---
 name: play-release
-description: Cut a Google Play release in a repo set up by play-release-setup - checks secrets, proposes the next version, drafts release notes for the user to approve, opens the version bump PR, then tags the merge and watches the upload to the internal track. Use when the user asks to ship, release, publish, or cut a version of an Android app, or invokes /play-release.
+description: Cut a Google Play release in a repo set up by play-release-setup - checks secrets, proposes the next version, drafts release notes and picks which testers get it for the user to approve, opens the version bump PR, then tags the merge and watches the upload to the internal track or a targeted closed testing track. Use when the user asks to ship, release, publish, or cut a version of an Android app, or invokes /play-release.
 ---
 
 # Play release
@@ -91,9 +91,32 @@ Count characters, not bytes, with `LC_ALL=en_US.UTF-8 wc -m`. `wc -c` overcounts
 outside ASCII. Play rejects longer notes, and only at the very end of the run. If the directory
 has other locales, ask whether to update them too, or remove the stale ones.
 
-## 4. Phase A: the bump PR
+## 4. Pick who gets it
 
-For an ordinary bump, change only the `appVersionName` line in the build file. When the user
+`distribution/tracks` lists the Play tracks the tag uploads to, one per line, with `#`
+comments. A repo set up before this file existed has none, and releases to `internal`.
+
+Show the tracks it names now and use AskUserQuestion to keep them or pick others. Offer
+`internal` (everyone on the internal tester list) and the closed tracks that previous releases
+used (`git log -p --follow -- distribution/tracks`). The user can type a track name. The agent
+cannot list the app's tracks, so ask the user to confirm a new name exists in Play Console,
+spelled exactly as it is there. The workflow refuses `production`, `beta`, and
+`internalsharing`.
+
+When the user names people rather than a track, explain that Play targets tracks, not releases:
+those people need a closed testing track of their own, set up once by hand as described in the
+[testing tracks guide](../play-release-setup/references/testing-tracks.md). Warn that anyone who
+has opted into internal testing does not receive closed-track builds. Stop here until the track
+exists; a missing track fails at upload and uses up nothing, but wastes a run.
+
+Write the chosen names to `distribution/tracks`, keeping its comment lines. Without the file,
+create it from `templates/tracks` in the play-release-setup skill. A change of audience is part
+of the bump PR, like the notes.
+
+## 5. Phase A: the bump PR
+
+For an ordinary bump, change only the `appVersionName` line in the build file, the release
+notes, and `distribution/tracks` if the audience changed. When the user
 requests a release fix in the same PR, include that fix and describe it in the PR. Keep unrelated
 open fixes separate unless the user asks to include them.
 
@@ -112,15 +135,15 @@ Stage requested fix files by their exact paths in addition to the ordinary bump 
 
 ```bash
 git checkout -b release/vX.Y
-git add <build-file> distribution/whatsnew/
+git add <build-file> distribution/whatsnew/ distribution/tracks
 git commit -m "Release vX.Y"
 git push -u origin release/vX.Y
-gh pr create --title "Release vX.Y" --body "<user-facing changes, the version, the derived versionCode>"
+gh pr create --title "Release vX.Y" --body "<user-facing changes, the version, the derived versionCode, the tracks>"
 ```
 
 Give the user the PR link and stop. **Do not merge it** unless they explicitly ask.
 
-## 5. Phase B: tag and ship
+## 6. Phase B: tag and ship
 
 After the merge:
 
@@ -136,7 +159,8 @@ merging it is the squashed or last rebased commit. GitHub reports it either way:
 gh pr view release/vX.Y --json state,mergeCommit -q '.state + " " + .mergeCommit.oid'
 ```
 
-Show the user that commit, the version, and the release notes. Ask for an explicit yes. Pushing the tag starts an upload that permanently uses up that versionCode. Ask again even
+Show the user that commit, the version, the release notes, and the tracks from
+`distribution/tracks` at that commit. Ask for an explicit yes. Pushing the tag starts an upload that permanently uses up that versionCode. Ask again even
 if they said "just release it" earlier.
 
 ```bash
@@ -153,9 +177,10 @@ If the workflow's environment requires a reviewer, the run waits until someone a
 GitHub. Say so rather than reporting it as stuck. A release takes about 5 to 15 minutes. Watch
 in the background if you can, rather than holding the conversation.
 
-On success, say it is on the **internal** track. Say that testers must be on the track's tester
-list and accept its opt-in link to see it, and that promoting to production is a manual step in
-Play Console.
+On success, name the tracks it went to (the run's `Read the release tracks` step prints them).
+Say that testers must be on each track's tester lists and accept its opt-in link to see it. For a
+closed track, add that Play may review the release before testers get it. Promoting to production
+is a manual step in Play Console.
 
 ## When it fails
 
