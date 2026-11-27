@@ -90,6 +90,19 @@ After setup and the one-time secrets, ask it to *cut a release*.
   August 2026. If a menu path is wrong, please open an issue or a PR. That file is where most
   fixes will be needed.
 
+## Checks
+
+CI runs `ci/check_templates.py` on every pull request. It validates each `SKILL.md` (frontmatter,
+links, and that every template placeholder is explained), fills `release.yml` the way the setup
+skill describes and lints each variant with actionlint and shellcheck, and runs both Gradle
+templates in real builds to check the version code math and signing fallbacks. To run it
+locally:
+
+```bash
+pip install -r ci/requirements.txt   # actionlint and shellcheck, for the workflow check
+python3 ci/check_templates.py        # or: skills | workflow | gradle (needs gradle on PATH)
+```
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
