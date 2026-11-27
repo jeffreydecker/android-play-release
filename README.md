@@ -4,8 +4,8 @@ Agent skills that set up and run tag-driven Google Play releases for Android app
 Actions.
 
 You push `v1.2`. CI checks that the tag matches the version in your build file, builds and signs
-the bundle, and uploads it with release notes to the Play internal track. Promoting to
-production stays with you.
+the bundle, and uploads it with release notes to the Play internal track, or to a closed testing
+track when a release is meant for specific testers. Promoting to production stays with you.
 
 Two skills:
 
@@ -30,7 +30,8 @@ This pipeline handles your upload key and a Play service account key, so here ar
   without an explicit yes each time. Setup does none of these at all.
 - **It pins third-party actions to commits.** The upload action gets your service account key,
   so a moved tag can't swap in different code.
-- **It uploads to the internal track only.** Production is a button you press in Play Console.
+- **It uploads to testing tracks only**: internal, or closed tracks you created. Production and
+  open testing are refused. Production is a button you press in Play Console.
 
 ## Design
 
@@ -78,7 +79,11 @@ After setup and the one-time secrets, ask it to *cut a release*.
 - One application module and one package, Android App Bundles only, GitHub-hosted runners.
 - Secrets live in a GitHub Environment that only `v*` tags can use. Private repos on GitHub Free
   can't have environments, so they fall back to repository secrets.
-- Uploads go to the internal track. Other tracks and staged rollouts mean editing the workflow.
+- Uploads go to internal or closed testing tracks, chosen per release in `distribution/tracks`
+  (see [testing-tracks.md](skills/play-release-setup/references/testing-tracks.md)). Play
+  targets testers by track, so each group needs a closed track, created once by hand. Production,
+  open testing, staged rollouts, and internal app sharing mean editing the workflow or using Play
+  Console.
 - Release notes start in one language, your listing's default. Add more as sibling files.
 
 ## Keeping it current

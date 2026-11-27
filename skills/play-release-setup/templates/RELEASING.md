@@ -10,8 +10,9 @@ git tag v1.2 && git push origin v1.2
 With the `play-release` skill installed, asking your agent to release does both, and prompts
 for the version and release notes.
 
-The tag builds a signed bundle and uploads it to the Play **internal** testing track. Promoting
-to production stays manual, in Play Console.
+The tag builds a signed bundle and uploads it to the Play testing tracks listed in
+`distribution/tracks`: the **internal** track unless the bump PR changed it. Promoting to
+production stays manual, in Play Console.
 
 ## How it works
 
@@ -20,10 +21,10 @@ version bump PR ──merge──▶ default branch ──tag v1.2──▶ .git
     ├─ verify the tag matches appVersionName
     ├─ restore the upload keystore and any gitignored build files from secrets
     ├─ build and sign the bundle
-    ├─ upload it with the release notes to the internal track
+    ├─ upload it with the release notes to the tracks in distribution/tracks
     └─ archive the bundle on the run
                                     ▼
-             Play Console: internal ──(you, by hand)──▶ production
+         Play Console: internal or closed track ──(you, by hand)──▶ production
 ```
 
 **The version lives in the build file.** `appVersionName` is the only version literal.
@@ -44,6 +45,22 @@ the release build compiles unsigned.
 **Release notes** are `distribution/whatsnew/whatsnew-<locale>`, one file per store listing
 language, each at most 500 characters. Going over fails the upload after the whole build. Add a
 language with a sibling file such as `whatsnew-es-ES`.
+
+**Who gets a release** is `distribution/tracks`, one track per line, set in the bump PR. Play
+attaches testers to tracks, not to releases, so a release for a smaller group goes to a closed
+testing track whose testers are that group. Create the track once in Play Console (**Test and
+release → Testing → Closed testing → Create track**), choose its email lists or Google Groups,
+and share its opt-in link. Then name it in `distribution/tracks`:
+
+```
+internal      # everyone on the internal tester list (the default)
+qa            # a closed testing track named qa in Play Console
+```
+
+Someone who has opted into internal testing does not get closed-track builds, so keep each tester
+on one track. Closed-track releases may wait for Play's review. Production and open testing are
+refused. To give an already uploaded build to another group, promote it in Play Console instead
+of re-tagging; its versionCode cannot be uploaded again.
 
 **Deobfuscation:** the R8 mapping travels inside the bundle, and Play extracts it. Nothing to
 upload separately.
